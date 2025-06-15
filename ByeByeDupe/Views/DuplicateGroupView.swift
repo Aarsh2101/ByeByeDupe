@@ -56,7 +56,64 @@ struct DuplicateGroupView: View {
     }
 
     func mergeGroup() {
-        print("Merging group of \(group.count) assets")
-        // Add actual delete/merge logic here
+        guard group.count > 1 else { return }
+
+        // Step 1: Find best image (highest resolution)
+        guard let bestAsset = group.max(by: {
+            $0.pixelWidth * $0.pixelHeight < $1.pixelWidth * $1.pixelHeight
+        }) else { return }
+
+        // Step 2: Extract existing metadata
+        SmartMergeHelper.getImageData(for: bestAsset) { imageData, bestMetadata in
+            guard let bestMetadata = bestMetadata else {
+                print("Could not read metadata from best image")
+                return
+            }
+
+            let hasLocation = bestAsset.location != nil
+            let hasDate = bestAsset.creationDate != nil
+
+            var needsRecreate = false
+            var mergedDate: Date? = bestAsset.creationDate
+            var mergedLocation: CLLocation? = bestAsset.location
+
+            for other in group where other.localIdentifier != bestAsset.localIdentifier {
+                if !hasDate, let otherDate = other.creationDate {
+                    mergedDate = otherDate
+                    needsRecreate = true
+                }
+
+                if !hasLocation, let otherLoc = other.location {
+                    mergedLocation = otherLoc
+                    needsRecreate = true
+                }
+            }
+
+            if needsRecreate {
+                // Step 3a: Recreate the image with merged metadata
+                SmartMergeHelper.mergeAndSave(bestAsset: bestAsset, from: group) { success in
+                    print(success ? "Recreated with full metadata" : "Merge failed")
+                }
+            } else {
+                // Step 3b: Update in-place
+                PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetChangeRequest(for: bestAsset)
+                    request.creationDate = mergedDate
+                    request.location = mergedLocation
+
+                    let assetsToDelete = group.filter { $0 != bestAsset }
+                    PHAssetChangeRequest.deleteAssets(assetsToDelete as NSArray)
+
+                } completionHandler: { success, error in
+                    if success {
+                        print("In-place update with no recreation")
+                    } else {
+                        print("Error: \(error?.localizedDescription ?? "")")
+                    }
+                }
+            }
+        }
     }
+
+
 }

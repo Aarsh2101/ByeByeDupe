@@ -10,6 +10,7 @@ import Photos
 
 struct DuplicateGroupView: View {
     let group: [PHAsset]
+    let onMerged: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -107,6 +108,9 @@ struct DuplicateGroupView: View {
                 } completionHandler: { success, error in
                     if success {
                         print("In-place update with no recreation")
+                        DispatchQueue.main.async {
+                                                onMerged()
+                                            }
                     } else {
                         print("Error: \(error?.localizedDescription ?? "")")
                     }
@@ -114,6 +118,5 @@ struct DuplicateGroupView: View {
             }
         }
     }
-
 
 }

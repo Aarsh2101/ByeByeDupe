@@ -20,11 +20,10 @@ struct ContentView: View {
                             PhotoThumbnail(asset: asset)
                         }
                     }
-                    .padding(.bottom, 80) // Leave space for the sticky button
+                    .padding(.bottom, 80)
                     .padding(.horizontal)
                 }
 
-                // Sticky Bottom Button
                 Button(action: {
                     viewModel.detectDuplicates {
                         showDuplicates = true
@@ -43,11 +42,14 @@ struct ContentView: View {
             .navigationTitle("Your Photos")
             .navigationDestination(isPresented: $showDuplicates) {
                 DuplicateListView(duplicateGroups: viewModel.duplicates)
+                    .environmentObject(viewModel) // pass down to children
             }
         }
+        .environmentObject(viewModel) // make viewModel available app-wide
     }
 }
+
 #Preview {
     ContentView()
+        .environmentObject(PhotoLibraryViewModel())
 }
-

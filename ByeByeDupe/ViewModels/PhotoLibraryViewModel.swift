@@ -8,13 +8,18 @@
 import Photos
 import SwiftUI
 
-class PhotoLibraryViewModel: ObservableObject {
-    @Published var showingDuplicates = false
+class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObserver {
     @Published var assets: [PHAsset] = []
     @Published var duplicates: [[PHAsset]] = []
 
-    init() {
+    override init() {
+        super.init()
+        PHPhotoLibrary.shared().register(self)
         requestPermission()
+    }
+
+    deinit {
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
 
     func requestPermission() {
@@ -45,10 +50,15 @@ class PhotoLibraryViewModel: ObservableObject {
 
     func detectDuplicates(completion: @escaping () -> Void) {
         let detector = DuplicateDetector()
-        print("Detecting duplicates...")
         detector.findDuplicates(from: self.assets) { groups in
             self.duplicates = groups
             completion()
+        }
+    }
+
+    func photoLibraryDidChange(_ changeInstance: PHChange) {
+        DispatchQueue.main.async {
+            self.loadPhotos()
         }
     }
 }

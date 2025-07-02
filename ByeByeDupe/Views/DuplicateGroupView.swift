@@ -94,6 +94,11 @@ struct DuplicateGroupView: View {
                 // Step 3a: Recreate the image with merged metadata
                 SmartMergeHelper.mergeAndSave(bestAsset: bestAsset, from: group) { success in
                     print(success ? "Recreated with full metadata" : "Merge failed")
+                    if success {
+                        DispatchQueue.main.async {
+                            onMerged()
+                        }
+                    }
                 }
             } else {
                 // Step 3b: Update in-place

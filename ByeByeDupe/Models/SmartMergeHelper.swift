@@ -12,6 +12,37 @@ import UIKit
 
 class SmartMergeHelper {
 
+    /// Merge metadata from all assets in `group` with the image data of
+    /// `bestAsset` and write the result to a temporary file. The caller is
+    /// responsible for deleting the returned file when finished.
+    static func mergedImageURL(bestAsset: PHAsset, from group: [PHAsset], completion: @escaping (URL?) -> Void) {
+        getImageData(for: bestAsset) { bestImageData, bestMetadata in
+            guard let bestImageData = bestImageData, let bestMetadata = bestMetadata else {
+                completion(nil)
+                return
+            }
+
+            var mergedMetadata = bestMetadata
+            let groupWithoutBest = group.filter { $0.localIdentifier != bestAsset.localIdentifier }
+
+            let dispatchGroup = DispatchGroup()
+            for asset in groupWithoutBest {
+                dispatchGroup.enter()
+                getImageData(for: asset) { _, metadata in
+                    if let metadata = metadata {
+                        mergedMetadata = merge(metadata1: mergedMetadata, metadata2: metadata)
+                    }
+                    dispatchGroup.leave()
+                }
+            }
+
+            dispatchGroup.notify(queue: .main) {
+                let outputURL = writeImageWithMetadata(imageData: bestImageData, metadata: mergedMetadata)
+                completion(outputURL)
+            }
+        }
+    }
+
     static func mergeAndSave(bestAsset: PHAsset, from group: [PHAsset], completion: @escaping (Bool) -> Void) {
         // Step 1: Extract image data from best asset
         getImageData(for: bestAsset) { bestImageData, bestMetadata in

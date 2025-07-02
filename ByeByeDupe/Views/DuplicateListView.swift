@@ -44,28 +44,33 @@ struct DuplicateListView: View {
         .navigationTitle("Duplicates")
     }
     
+    struct MergeOperation {
+        let group: [PHAsset]
+        let bestAsset: PHAsset
+        let mergedDate: Date?
+        let mergedLocation: CLLocation?
+        let outputURL: URL?
+    }
+
     func mergeAllGroups() {
         isMergingAll = true
-        var groupsCopy = duplicateGroups
+        let groups = duplicateGroups
+        var operations: [MergeOperation] = []
 
-        func mergeNext() {
-            guard !groupsCopy.isEmpty else {
-                isMergingAll = false
+        func prepareNext(_ remaining: [[PHAsset]]) {
+            guard let group = remaining.first else {
+                performBatch(with: operations)
                 return
             }
 
-            let group = groupsCopy.removeFirst()
+            let rest = Array(remaining.dropFirst())
 
-            // Step 1: Get the best asset
-            guard let bestAsset = group.max(by: {
-                $0.pixelWidth * $0.pixelHeight < $1.pixelWidth * $1.pixelHeight
-            }) else {
-                mergeNext()
+            guard let bestAsset = group.max(by: { $0.pixelWidth * $0.pixelHeight < $1.pixelWidth * $1.pixelHeight }) else {
+                prepareNext(rest)
                 return
             }
 
-            // Step 2: Check if we need to recreate or can update in-place
-            SmartMergeHelper.getImageData(for: bestAsset) { _, bestMetadata in
+            SmartMergeHelper.getImageData(for: bestAsset) { _, _ in
                 var needsRecreate = false
                 var mergedDate: Date? = bestAsset.creationDate
                 var mergedLocation: CLLocation? = bestAsset.location
@@ -81,33 +86,48 @@ struct DuplicateListView: View {
                     }
                 }
 
-                let onFinish: () -> Void = {
-                    DispatchQueue.main.async {
-                        duplicateGroups.removeAll { $0 == group }
-                        mergeNext()
-                    }
-                }
-
                 if needsRecreate {
-                    SmartMergeHelper.mergeAndSave(bestAsset: bestAsset, from: group) { success in
-                        print(success ? "✅ Group recreated" : "❌ Merge failed")
-                        onFinish()
+                    SmartMergeHelper.mergedImageURL(bestAsset: bestAsset, from: group) { url in
+                        operations.append(MergeOperation(group: group, bestAsset: bestAsset, mergedDate: mergedDate, mergedLocation: mergedLocation, outputURL: url))
+                        prepareNext(rest)
                     }
                 } else {
-                    PHPhotoLibrary.shared().performChanges {
-                        let request = PHAssetChangeRequest(for: bestAsset)
-                        request.creationDate = mergedDate
-                        request.location = mergedLocation
-                        PHAssetChangeRequest.deleteAssets(group.filter { $0 != bestAsset } as NSArray)
-                    } completionHandler: { success, error in
-                        print(success ? "✅ In-place group merged" : "❌ Error: \(error?.localizedDescription ?? "")")
-                        onFinish()
-                    }
+                    operations.append(MergeOperation(group: group, bestAsset: bestAsset, mergedDate: mergedDate, mergedLocation: mergedLocation, outputURL: nil))
+                    prepareNext(rest)
                 }
             }
         }
 
-        mergeNext()
+        func performBatch(with ops: [MergeOperation]) {
+            PHPhotoLibrary.shared().performChanges {
+                for op in ops {
+                    if let url = op.outputURL {
+                        PHAssetChangeRequest.creationRequestForAssetFromImage(atFileURL: url)
+                        PHAssetChangeRequest.deleteAssets(op.group as NSArray)
+                    } else {
+                        let request = PHAssetChangeRequest(for: op.bestAsset)
+                        request.creationDate = op.mergedDate
+                        request.location = op.mergedLocation
+                        let toDelete = op.group.filter { $0 != op.bestAsset }
+                        PHAssetChangeRequest.deleteAssets(toDelete as NSArray)
+                    }
+                }
+            } completionHandler: { success, error in
+                for op in ops {
+                    if let url = op.outputURL {
+                        try? FileManager.default.removeItem(at: url)
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    duplicateGroups.removeAll()
+                    isMergingAll = false
+                    print(success ? "✅ All groups merged" : "❌ Error: \(error?.localizedDescription ?? "")")
+                }
+            }
+        }
+
+        prepareNext(groups)
     }
 
 }

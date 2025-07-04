@@ -4,22 +4,23 @@
 //
 //  Created by Aarsh Patel on 6/9/25.
 //
-
 import SwiftUI
 import Photos
 
 struct DuplicateGroupView: View {
     let group: [PHAsset]
     let onMerged: () -> Void
+    @State private var isMerging = false
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // 📅 Date + Merge button in same HStack
-            HStack {
-                if let date = group.first?.creationDate {
-                    Text(formattedDate(date))
-                        .font(.headline)
-                }
+        ZStack {
+            VStack(alignment: .leading, spacing: 8) {
+                // 📅 Date + Merge button in same HStack
+                HStack {
+                    if let date = group.first?.creationDate {
+                        Text(formattedDate(date))
+                            .font(.headline)
+                    }
 
                 Spacer()
 
@@ -33,6 +34,7 @@ struct DuplicateGroupView: View {
                         .foregroundColor(.black)
                         .cornerRadius(6)
                 }
+                .disabled(isMerging)
             }
             .padding(.horizontal)
 
@@ -48,6 +50,17 @@ struct DuplicateGroupView: View {
             .frame(height: 110)
         }
         .padding(.vertical, 12)
+
+            if isMerging {
+                ZStack {
+                    Color.black.opacity(0.4)
+                    ProgressView("Merging...")
+                        .padding(8)
+                        .background(Color(.systemBackground))
+                        .cornerRadius(8)
+                }
+            }
+        }
     }
 
     func formattedDate(_ date: Date) -> String {
@@ -58,6 +71,8 @@ struct DuplicateGroupView: View {
 
     func mergeGroup() {
         guard group.count > 1 else { return }
+
+        isMerging = true
 
         // Step 1: Find best image (highest resolution)
         guard let bestAsset = group.max(by: {
@@ -94,10 +109,11 @@ struct DuplicateGroupView: View {
                 // Step 3a: Recreate the image with merged metadata
                 SmartMergeHelper.mergeAndSave(bestAsset: bestAsset, from: group) { success in
                     print(success ? "Recreated with full metadata" : "Merge failed")
-                    if success {
-                        DispatchQueue.main.async {
+                    DispatchQueue.main.async {
+                        if success {
                             onMerged()
                         }
+                        isMerging = false
                     }
                 }
             } else {
@@ -111,13 +127,14 @@ struct DuplicateGroupView: View {
                     PHAssetChangeRequest.deleteAssets(assetsToDelete as NSArray)
 
                 } completionHandler: { success, error in
-                    if success {
-                        print("In-place update with no recreation")
-                        DispatchQueue.main.async {
-                                                onMerged()
-                                            }
-                    } else {
-                        print("Error: \(error?.localizedDescription ?? "")")
+                    DispatchQueue.main.async {
+                        if success {
+                            print("In-place update with no recreation")
+                            onMerged()
+                        } else {
+                            print("Error: \(error?.localizedDescription ?? "")")
+                        }
+                        isMerging = false
                     }
                 }
             }

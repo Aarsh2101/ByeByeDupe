@@ -27,7 +27,17 @@ struct DuplicateListView: View {
                 }
             }
             .padding(.bottom, 80)
-
+            if isMergingAll {
+                ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    ProgressView("Merging...")
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                }
+            }
             Button(action: {
                 mergeAllGroups()
             }) {

@@ -24,6 +24,18 @@ struct ContentView: View {
                     .padding(.horizontal)
                 }
 
+                if viewModel.isScanning {
+                    ZStack {
+                    Color.black.opacity(0.4)
+                        .ignoresSafeArea()
+                    ProgressView("Scanning...")
+                        .padding()
+                        .background(Color(.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                    }
+                }
+
                 Button(action: {
                     viewModel.detectDuplicates {
                         showDuplicates = true
@@ -38,6 +50,7 @@ struct ContentView: View {
                         .cornerRadius(12)
                         .padding([.horizontal, .bottom], 16)
                 }
+                .disabled(viewModel.isScanning)
             }
             .navigationTitle("Your Photos")
             .navigationDestination(isPresented: $showDuplicates) {

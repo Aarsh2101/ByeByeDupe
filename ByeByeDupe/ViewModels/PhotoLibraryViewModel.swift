@@ -11,6 +11,7 @@ import SwiftUI
 class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObserver {
     @Published var assets: [PHAsset] = []
     @Published var duplicates: [[PHAsset]] = []
+    @Published var isScanning: Bool = false
 
     override init() {
         super.init()
@@ -49,10 +50,14 @@ class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObs
     }
 
     func detectDuplicates(completion: @escaping () -> Void) {
+        isScanning = true
         let detector = DuplicateDetector()
         detector.findDuplicates(from: self.assets) { groups in
-            self.duplicates = groups
-            completion()
+        DispatchQueue.main.async {
+                self.duplicates = groups
+                self.isScanning = false
+                completion()
+            }
         }
     }
 

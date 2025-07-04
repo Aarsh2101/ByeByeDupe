@@ -68,10 +68,10 @@ class DuplicateDetector {
         let hash = pixels.map { $0 > avg ? "1" : "0" }.joined()
 
         return hash
-    }
+            }
 
-
-    func findDuplicates(from assets: [PHAsset], completion: @escaping ([[PHAsset]]) -> Void) {
+    
+    func findDuplicates(from assets: [PHAsset], threshold: Int = 5, completion: @escaping ([[PHAsset]]) -> Void) {
         var hashMap: [PhotoHash: [PHAsset]] = [:]
         let manager = PHImageManager.default()
         let options = PHImageRequestOptions()
@@ -107,7 +107,7 @@ class DuplicateDetector {
                 var found = false
 
                 for (key, _ ) in hashMap {
-                    if self.hammingDistance(hashString, key.hash) <= 5 { 
+                    if self.hammingDistance(hashString, key.hash) <= threshold {
                         hashMap[key]?.append(asset)
                         found = true
                         break

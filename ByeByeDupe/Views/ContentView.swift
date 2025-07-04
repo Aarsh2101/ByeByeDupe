@@ -10,6 +10,8 @@ struct ContentView: View {
     @StateObject var viewModel = PhotoLibraryViewModel()
     let columns = [GridItem(.adaptive(minimum: 100))]
     @State private var showDuplicates = false
+    @State private var showThresholdPicker = false
+    @State private var tempThreshold = 5
 
     var body: some View {
         NavigationStack {
@@ -26,39 +28,86 @@ struct ContentView: View {
 
                 if viewModel.isScanning {
                     ZStack {
-                    Color.black.opacity(0.4)
-                        .ignoresSafeArea()
-                    ProgressView("Scanning...")
-                        .padding()
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                        .shadow(radius: 4)
+                        Color.black.opacity(0.4)
+                            .ignoresSafeArea()
+                        ProgressView("Scanning...")
+                            .padding()
+                            .background(Color(.systemBackground))
+                            .cornerRadius(12)
+                            .shadow(radius: 4)
                     }
                 }
 
-                Button(action: {
-                    viewModel.detectDuplicates {
-                        showDuplicates = true
+                VStack(spacing: 8) {
+                    Button(action: {
+                        viewModel.detectDuplicates {
+                            showDuplicates = true
+                        }
+                    }) {
+                        Text("Find Duplicates")
+                            .bold()
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                     }
-                }) {
-                    Text("Find Duplicates")
-                        .bold()
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .padding([.horizontal, .bottom], 16)
+                    .disabled(viewModel.isScanning)
+                    .padding([.horizontal, .bottom], 16)
                 }
-                .disabled(viewModel.isScanning)
             }
             .navigationTitle("Your Photos")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {
+                        tempThreshold = viewModel.detectionThreshold
+                        showThresholdPicker = true
+                    }) {
+                        Image(systemName: "slider.horizontal.3")
+                    }
+                }
+            }
             .navigationDestination(isPresented: $showDuplicates) {
                 DuplicateListView(duplicateGroups: viewModel.duplicates)
-                    .environmentObject(viewModel) // pass down to children
+                    .environmentObject(viewModel)
+            }
+            .sheet(isPresented: $showThresholdPicker) {
+                VStack {
+                    Text("Select Threshold")
+                        .font(.headline)
+                        .padding()
+
+                    Picker("Threshold", selection: $tempThreshold) {
+                        ForEach(1...10, id: \.self) { value in
+                            Text("\(value)").tag(value)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .labelsHidden()
+                    .frame(height: 150)
+
+                    Divider()
+
+                    HStack {
+                        Button("Cancel") {
+                            showThresholdPicker = false
+                        }
+                        .padding()
+
+                        Spacer()
+
+                        Button("Done") {
+                            viewModel.detectionThreshold = tempThreshold * 3
+                            showThresholdPicker = false
+                        }
+                        .bold()
+                        .padding()
+                    }
+                }
+                .presentationDetents([.height(300)])
             }
         }
-        .environmentObject(viewModel) // make viewModel available app-wide
+        .environmentObject(viewModel)
     }
 }
 

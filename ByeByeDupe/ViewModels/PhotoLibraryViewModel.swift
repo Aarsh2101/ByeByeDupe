@@ -12,17 +12,18 @@ class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObs
     @Published var assets: [PHAsset] = []
     @Published var duplicates: [[PHAsset]] = []
     @Published var isScanning: Bool = false
-
+    @Published var detectionThreshold: Int = 5
+    
     override init() {
         super.init()
         PHPhotoLibrary.shared().register(self)
         requestPermission()
     }
-
+    
     deinit {
         PHPhotoLibrary.shared().unregisterChangeObserver(self)
     }
-
+    
     func requestPermission() {
         PHPhotoLibrary.requestAuthorization { status in
             if status == .authorized || status == .limited {
@@ -32,35 +33,35 @@ class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObs
             }
         }
     }
-
+    
     func loadPhotos() {
         let fetchOptions = PHFetchOptions()
         fetchOptions.sortDescriptors = [NSSortDescriptor(key: "creationDate", ascending: false)]
-
+        
         let result = PHAsset.fetchAssets(with: .image, options: fetchOptions)
         var loadedAssets: [PHAsset] = []
-
+        
         result.enumerateObjects { asset, _, _ in
             loadedAssets.append(asset)
         }
-
+        
         DispatchQueue.main.async {
             self.assets = loadedAssets
         }
     }
-
+    
     func detectDuplicates(completion: @escaping () -> Void) {
         isScanning = true
         let detector = DuplicateDetector()
-        detector.findDuplicates(from: self.assets) { groups in
-        DispatchQueue.main.async {
+        detector.findDuplicates(from: self.assets, threshold: detectionThreshold) { groups in
+            DispatchQueue.main.async {
                 self.duplicates = groups
                 self.isScanning = false
                 completion()
             }
         }
     }
-
+    
     func photoLibraryDidChange(_ changeInstance: PHChange) {
         DispatchQueue.main.async {
             self.loadPhotos()

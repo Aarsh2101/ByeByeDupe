@@ -14,21 +14,7 @@ struct DuplicateListView: View {
 
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Button(action: {
-                mergeAllGroups()
-            }) {
-                Text("Merge All")
-                    .bold()
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(isMergingAll ? Color.gray : Color.red)
-                    .foregroundColor(.white)
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-            }
-            .disabled(isMergingAll || duplicateGroups.isEmpty)
-
+        ZStack(alignment: .bottom) {
             // 📸 Scrollable list of duplicates
             ScrollView {
                 ForEach(duplicateGroups.indices, id: \.self) { index in
@@ -40,6 +26,21 @@ struct DuplicateListView: View {
                     )
                 }
             }
+            .padding(.bottom, 80)
+
+            Button(action: {
+                mergeAllGroups()
+            }) {
+                Text("Merge All")
+                    .bold()
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(isMergingAll ? Color.gray : Color.red)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding([.horizontal, .bottom], 16)
+            }
+            .disabled(isMergingAll || duplicateGroups.isEmpty)
         }
         .navigationTitle("Duplicates")
     }

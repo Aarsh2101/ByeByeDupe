@@ -12,7 +12,11 @@ class PhotoLibraryViewModel: NSObject, ObservableObject, PHPhotoLibraryChangeObs
     @Published var assets: [PHAsset] = []
     @Published var duplicates: [[PHAsset]] = []
     @Published var isScanning: Bool = false
-    @Published var detectionThreshold: Int = 5
+    @Published var detectionUIScale: Int = 5  // user-selected threshold
+
+    var detectionThreshold: Int {
+        detectionUIScale * 3  // actual threshold used in detection
+    }
     
     override init() {
         super.init()

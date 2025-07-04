@@ -60,7 +60,7 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
-                        tempThreshold = viewModel.detectionThreshold
+                        tempThreshold = viewModel.detectionUIScale
                         showThresholdPicker = true
                     }) {
                         Image(systemName: "slider.horizontal.3")
@@ -97,7 +97,7 @@ struct ContentView: View {
                         Spacer()
 
                         Button("Done") {
-                            viewModel.detectionThreshold = tempThreshold * 3
+                            viewModel.detectionUIScale = tempThreshold
                             showThresholdPicker = false
                         }
                         .bold()

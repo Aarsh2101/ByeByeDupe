@@ -11,8 +11,8 @@ import Photos
 struct DuplicateListView: View {
     @State var duplicateGroups: [[PHAsset]]
     @State private var isMergingAll = false
-
-
+    
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // 📸 Scrollable list of duplicates
@@ -62,30 +62,30 @@ struct DuplicateListView: View {
         let mergedLocation: CLLocation?
         let outputURL: URL?
     }
-
+    
     func mergeAllGroups() {
         isMergingAll = true
         let groups = duplicateGroups
         var operations: [MergeOperation] = []
-
+        
         func prepareNext(_ remaining: [[PHAsset]]) {
             guard let group = remaining.first else {
                 performBatch(with: operations)
                 return
             }
-
+            
             let rest = Array(remaining.dropFirst())
-
+            
             guard let bestAsset = group.max(by: { $0.pixelWidth * $0.pixelHeight < $1.pixelWidth * $1.pixelHeight }) else {
                 prepareNext(rest)
                 return
             }
-
+            
             SmartMergeHelper.getImageData(for: bestAsset) { _, _ in
                 var needsRecreate = false
                 var mergedDate: Date? = bestAsset.creationDate
                 var mergedLocation: CLLocation? = bestAsset.location
-
+                
                 for other in group where other.localIdentifier != bestAsset.localIdentifier {
                     if bestAsset.creationDate == nil, let otherDate = other.creationDate {
                         mergedDate = otherDate
@@ -96,7 +96,7 @@ struct DuplicateListView: View {
                         needsRecreate = true
                     }
                 }
-
+                
                 if needsRecreate {
                     SmartMergeHelper.mergedImageURL(bestAsset: bestAsset, from: group) { url in
                         operations.append(MergeOperation(group: group, bestAsset: bestAsset, mergedDate: mergedDate, mergedLocation: mergedLocation, outputURL: url))
@@ -108,7 +108,7 @@ struct DuplicateListView: View {
                 }
             }
         }
-
+        
         func performBatch(with ops: [MergeOperation]) {
             PHPhotoLibrary.shared().performChanges {
                 for op in ops {
@@ -129,7 +129,7 @@ struct DuplicateListView: View {
                         try? FileManager.default.removeItem(at: url)
                     }
                 }
-
+                
                 DispatchQueue.main.async {
                     duplicateGroups.removeAll()
                     isMergingAll = false
@@ -137,8 +137,8 @@ struct DuplicateListView: View {
                 }
             }
         }
-
+        
         prepareNext(groups)
     }
-
+    
 }

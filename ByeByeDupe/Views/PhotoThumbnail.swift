@@ -12,7 +12,7 @@ struct PhotoThumbnail: View {
     var asset: PHAsset
     @State private var image: UIImage? = nil
     @State private var showViewer = false
-
+    
     var body: some View {
         Group {
             if let img = image {
@@ -34,7 +34,7 @@ struct PhotoThumbnail: View {
             PhotoViewer(asset: asset)
         }
     }
-
+    
     func loadThumbnail() {
         let manager = PHImageManager.default()
         let options = PHImageRequestOptions()
@@ -42,7 +42,7 @@ struct PhotoThumbnail: View {
         options.resizeMode = .fast
         options.isNetworkAccessAllowed = true
         options.isSynchronous = false
-
+        
         manager.requestImage(
             for: asset,
             targetSize: CGSize(width: 150, height: 150),

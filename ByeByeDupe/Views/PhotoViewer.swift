@@ -12,7 +12,7 @@ struct PhotoViewer: View {
     let asset: PHAsset
     @Environment(\.dismiss) var dismiss
     @State private var fullImage: UIImage?
-
+    
     var body: some View {
         ZStack {
             if let img = fullImage {
@@ -23,7 +23,7 @@ struct PhotoViewer: View {
             } else {
                 ProgressView("Loading...")
             }
-
+            
             VStack {
                 HStack {
                     Spacer()
@@ -41,14 +41,14 @@ struct PhotoViewer: View {
         }
         .onAppear(perform: loadFullImage)
     }
-
+    
     func loadFullImage() {
         let manager = PHImageManager.default()
         let options = PHImageRequestOptions()
         options.deliveryMode = .highQualityFormat
         options.resizeMode = .none
         options.isNetworkAccessAllowed = true
-
+        
         manager.requestImage(
             for: asset,
             targetSize: PHImageManagerMaximumSize,

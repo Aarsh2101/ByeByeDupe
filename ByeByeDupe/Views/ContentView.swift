@@ -12,7 +12,7 @@ struct ContentView: View {
     @State private var showDuplicates = false
     @State private var showThresholdPicker = false
     @State private var tempThreshold = 5
-
+    
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
@@ -25,7 +25,7 @@ struct ContentView: View {
                     .padding(.bottom, 80)
                     .padding(.horizontal)
                 }
-
+                
                 if viewModel.isScanning {
                     ZStack {
                         Color.black.opacity(0.4)
@@ -37,7 +37,7 @@ struct ContentView: View {
                             .shadow(radius: 4)
                     }
                 }
-
+                
                 VStack(spacing: 8) {
                     Button(action: {
                         viewModel.detectDuplicates {
@@ -76,7 +76,7 @@ struct ContentView: View {
                     Text("Select Threshold")
                         .font(.headline)
                         .padding()
-
+                    
                     Picker("Threshold", selection: $tempThreshold) {
                         ForEach(1...10, id: \.self) { value in
                             Text("\(value)").tag(value)
@@ -85,17 +85,17 @@ struct ContentView: View {
                     .pickerStyle(.wheel)
                     .labelsHidden()
                     .frame(height: 150)
-
+                    
                     Divider()
-
+                    
                     HStack {
                         Button("Cancel") {
                             showThresholdPicker = false
                         }
                         .padding()
-
+                        
                         Spacer()
-
+                        
                         Button("Done") {
                             viewModel.detectionUIScale = tempThreshold
                             showThresholdPicker = false

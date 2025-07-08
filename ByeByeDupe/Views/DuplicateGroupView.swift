@@ -81,7 +81,7 @@ struct DuplicateGroupView: View {
         
         // Step 2: Extract existing metadata
         SmartMergeHelper.getImageData(for: bestAsset) { imageData, bestMetadata in
-            guard let bestMetadata = bestMetadata else {
+            guard bestMetadata != nil else {
                 print("Could not read metadata from best image")
                 return
             }
